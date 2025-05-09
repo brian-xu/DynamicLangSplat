@@ -11,7 +11,7 @@ from scene.temporal_gaussian_model import TemporalGaussianModel, batch_SH_rotate
 from utils.sh_utils import eval_sh
 from typing import Optional
 
-NUM_CHANNELS = 6
+NUM_CHANNELS = 9
 
 # pts: Nx3
 # pts_left: Nx3
@@ -145,7 +145,7 @@ def temporal_render(viewpoint_camera, pc : TemporalGaussianModel, pipe, bg_color
     colors_precomp = None
     shs = pc.get_features
     dino = pc.get_features_dino
-    # clip = pc.get_features_clip
+    clip = pc.get_features_clip
     #else:
     sm_loss, st_loss = 0., 0.
     if disable_deform:
@@ -311,11 +311,11 @@ def temporal_render(viewpoint_camera, pc : TemporalGaussianModel, pipe, bg_color
         
         dino_features = dino * static_filter[..., None] + pc.get_features_dino * (1.-static_filter[..., None])
         dino_features = dino_features.squeeze()
-        # clip_features = clip * static_filter[..., None] + pc.get_features_clip * (1.-static_filter[..., None])
-        # clip_features = clip_features.squeeze()
+        clip_features = clip * static_filter[..., None] + pc.get_features_clip * (1.-static_filter[..., None])
+        clip_features = clip_features.squeeze()
         
-        features_precomp = torch.cat((colors_precomp, dino_features), dim=1)
-        # features_precomp = torch.cat((colors_precomp, dino_features, clip_features), dim=1)
+        # features_precomp = torch.cat((colors_precomp, dino_features), dim=1)
+        features_precomp = torch.cat((colors_precomp, dino_features, clip_features), dim=1)
         
         rendered_features, radii, rendered_depth = rasterizer(
             means3D = means3D * static_filter + pc.get_xyz * (1.-static_filter),
@@ -329,7 +329,7 @@ def temporal_render(viewpoint_camera, pc : TemporalGaussianModel, pipe, bg_color
         
         rendered_image = rendered_features[:3, :, :]
         rendered_dino = rendered_features[3:6, :, :]
-        # rendered_clip = rendered_features[6:-1, :, :]
+        rendered_clip = rendered_features[6:, :, :]
         
         #print(torch.sum(static_filter), means3D.shape[0])
         #means3D[static_filter] = pc.get_xyz[static_filter]
@@ -597,10 +597,10 @@ def temporal_render(viewpoint_camera, pc : TemporalGaussianModel, pipe, bg_color
         colors_precomp = torch.clamp_min(sh2rgb + 0.5, 0.0)
         
         dino_features = dino.squeeze()
-        # clip_features = clip.squeeze()
+        clip_features = clip.squeeze()
         
-        features_precomp = torch.cat((colors_precomp, dino_features), dim=1)
-        # features_precomp = torch.cat((colors_precomp, dino_features, clip_features), dim=1)
+        # features_precomp = torch.cat((colors_precomp, dino_features), dim=1)
+        features_precomp = torch.cat((colors_precomp, dino_features, clip_features), dim=1)
         
         rendered_features, radii, rendered_depth = rasterizer(
             means3D = means3D,
@@ -614,7 +614,7 @@ def temporal_render(viewpoint_camera, pc : TemporalGaussianModel, pipe, bg_color
         
         rendered_image = rendered_features[:3, :, :]
         rendered_dino = rendered_features[3:6, :, :]
-        # rendered_clip = rendered_features[6:-1, :, :]
+        rendered_clip = rendered_features[6:, :, :]
         
         #scaling_tensor = scales.detach()
         if pc.ewa_prune:
@@ -805,7 +805,7 @@ def temporal_render(viewpoint_camera, pc : TemporalGaussianModel, pipe, bg_color
             "radii": radii,
             # store extra rendering
             "rendered_dino": rendered_dino,
-            # "rendered_clip": rendered_clip,
+            "rendered_clip": rendered_clip,
             "rendered_sep": rendered_sep,
             "rendered_dy": rendered_dy,
             "rendered_canon": rendered_canon,

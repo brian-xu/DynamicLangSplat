@@ -1175,7 +1175,7 @@ class TemporalGaussianModel(nn.Module):
         self._features_dc = torch.empty(0)
         self._features_rest = torch.empty(0)
         self._features_dino = torch.empty(0)
-        # self._features_clip = torch.empty(0)
+        self._features_clip = torch.empty(0)
         self._scaling = torch.empty(0)
         self._rotation = torch.empty(0)
         self._opacity = torch.empty(0)
@@ -1255,7 +1255,7 @@ class TemporalGaussianModel(nn.Module):
             self._features_dc,
             self._features_rest,
             self._features_dino,
-            # self._features_clip
+            self._features_clip,
             self._scaling,
             self._rotation,
             self._opacity,
@@ -1285,7 +1285,7 @@ class TemporalGaussianModel(nn.Module):
         self._features_dc, 
         self._features_rest,
         self._features_dino,
-        # self._features_clip,
+        self._features_clip,
         self._scaling, 
         self._rotation, 
         self._opacity,
@@ -1641,9 +1641,9 @@ class TemporalGaussianModel(nn.Module):
     def get_features_dino(self):
         return self._features_dino
     
-    # @property
-    # def get_features_clip(self):
-    #     return self._features_clip
+    @property
+    def get_features_clip(self):
+        return self._features_clip
     
     @property
     def get_opacity(self):
@@ -1671,7 +1671,7 @@ class TemporalGaussianModel(nn.Module):
         features[:, 3:, 1:] = 0.0
 
         dino_features = torch.zeros((fused_color.shape[0]+fused_color_dy.shape[0], 3, 1)).float().cuda()
-        # clip_features = torch.zeros((fused_color.shape[0]+fused_color_dy.shape[0], 3, 1)).float().cuda()
+        clip_features = torch.zeros((fused_color.shape[0]+fused_color_dy.shape[0], 3, 1)).float().cuda()
 
         print("Number of static points at initialisation : ", fused_point_cloud.shape[0])
         print("Number of dynamic points at initialisation : ", fused_point_cloud_dy.shape[0])
@@ -1695,7 +1695,7 @@ class TemporalGaussianModel(nn.Module):
         self._features_dc = nn.Parameter(features[:,:,0:1].transpose(1, 2).contiguous().requires_grad_(True))
         self._features_rest = nn.Parameter(features[:,:,1:].transpose(1, 2).contiguous().requires_grad_(True))
         self._features_dino = nn.Parameter(dino_features[:,:,0:1].transpose(1, 2).contiguous().requires_grad_(True))
-        # self._features_clip = nn.Parameter(clip_features[:,:,0:1].transpose(1, 2).contiguous().requires_grad_(True))
+        self._features_clip = nn.Parameter(clip_features[:,:,0:1].transpose(1, 2).contiguous().requires_grad_(True))
         self._scaling = nn.Parameter(torch.cat([scales, scales_dy], dim=0).requires_grad_(True))
         self._rotation = nn.Parameter(torch.cat([rots, rots_dy], dim=0).requires_grad_(True))
         self._opacity = nn.Parameter(torch.cat([opacities, opacities_dy], dim=0).requires_grad_(True))
@@ -1725,7 +1725,7 @@ class TemporalGaussianModel(nn.Module):
         features[:, 3:, 1:] = 0.0
 
         dino_features = torch.zeros((fused_color.shape[0], 3, 1)).float().cuda()
-        # clip_features = torch.zeros((fused_color.shape[0], 3, 1)).float().cuda()
+        clip_features = torch.zeros((fused_color.shape[0], 3, 1)).float().cuda()
 
         print("Number of points at initialisation : ", fused_point_cloud.shape[0])
 
@@ -1741,7 +1741,7 @@ class TemporalGaussianModel(nn.Module):
         self._features_dc = nn.Parameter(features[:,:,0:1].transpose(1, 2).contiguous().requires_grad_(True))
         self._features_rest = nn.Parameter(features[:,:,1:].transpose(1, 2).contiguous().requires_grad_(True))
         self._features_dino = nn.Parameter(dino_features[:,:,0:1].transpose(1, 2).contiguous().requires_grad_(True))
-        # self._features_clip = nn.Parameter(clip_features[:,:,0:1].transpose(1, 2).contiguous().requires_grad_(True))
+        self._features_clip = nn.Parameter(clip_features[:,:,0:1].transpose(1, 2).contiguous().requires_grad_(True))
         self._scaling = nn.Parameter(scales.requires_grad_(True))
         self._rotation = nn.Parameter(rots.requires_grad_(True))
         self._opacity = nn.Parameter(opacities.requires_grad_(True))
@@ -1768,7 +1768,7 @@ class TemporalGaussianModel(nn.Module):
             {'params': [self._features_rest], 'lr': training_args.feature_lr / 20.0, "name": "f_rest"},
             # TODO: training args for dino and clip feature lr
             {'params': [self._features_dino], 'lr': training_args.feature_lr, "name": "f_dino"},
-            # {'params': [self._features_clip], 'lr': training_args.feature_lr, "name": "f_clip"},
+            {'params': [self._features_clip], 'lr': training_args.feature_lr, "name": "f_clip"},
             {'params': [self._opacity], 'lr': training_args.opacity_lr, "name": "opacity"},
             {'params': [self._scaling], 'lr': training_args.scaling_lr, "name": "scaling"},
             {'params': [self._rotation], 'lr': training_args.rotation_lr, "name": "rotation"},
@@ -1833,8 +1833,8 @@ class TemporalGaussianModel(nn.Module):
             l.append('f_rest_{}'.format(i))
         for i in range(self._features_dino.shape[1]*self._features_dino.shape[2]):
             l.append('f_dino_{}'.format(i))
-        # for i in range(self._features_clip.shape[1]*self._features_clip.shape[2]):
-        #     l.append('f_clip_{}'.format(i))
+        for i in range(self._features_clip.shape[1]*self._features_clip.shape[2]):
+            l.append('f_clip_{}'.format(i))
         l.append('opacity')
         l.append('isstatic')
         for i in range(self._scaling.shape[1]):
@@ -1851,7 +1851,7 @@ class TemporalGaussianModel(nn.Module):
         f_dc = self._features_dc.detach().transpose(1, 2).flatten(start_dim=1).contiguous().cpu().numpy()
         f_rest = self._features_rest.detach().transpose(1, 2).flatten(start_dim=1).contiguous().cpu().numpy()
         f_dino = self._features_dino.detach().transpose(1, 2).flatten(start_dim=1).contiguous().cpu().numpy()
-        # f_clip = self._features_clip.detach().transpose(1, 2).flatten(start_dim=1).contiguous().cpu().numpy()
+        f_clip = self._features_clip.detach().transpose(1, 2).flatten(start_dim=1).contiguous().cpu().numpy()
         opacities = self._opacity.detach().cpu().numpy()
         isstatic = self._isstatic.detach().cpu().numpy()
         scale = self._scaling.detach().cpu().numpy()
@@ -1860,8 +1860,8 @@ class TemporalGaussianModel(nn.Module):
         dtype_full = [(attribute, 'f4') for attribute in self.construct_list_of_attributes()]
 
         elements = np.empty(xyz.shape[0], dtype=dtype_full)
-        attributes = np.concatenate((xyz, normals, f_dc, f_rest, f_dino, opacities, isstatic, scale, rotation), axis=1)
-        # attributes = np.concatenate((xyz, normals, f_dc, f_rest, f_dino, f_clip, opacities, isstatic, scale, rotation), axis=1)
+        # attributes = np.concatenate((xyz, normals, f_dc, f_rest, f_dino, opacities, isstatic, scale, rotation), axis=1)
+        attributes = np.concatenate((xyz, normals, f_dc, f_rest, f_dino, f_clip, opacities, isstatic, scale, rotation), axis=1)
         elements[:] = list(map(tuple, attributes))
         el = PlyElement.describe(elements, 'vertex')
         PlyData([el]).write(path)
@@ -1907,10 +1907,10 @@ class TemporalGaussianModel(nn.Module):
         features_dino[:, 1, 0] = np.asarray(plydata.elements[0]["f_dino_1"])
         features_dino[:, 2, 0] = np.asarray(plydata.elements[0]["f_dino_2"])
 
-        # features_clip = np.zeros((xyz.shape[0], 3, 1))
-        # features_clip[:, 0, 0] = np.asarray(plydata.elements[0]["f_clip_0"])
-        # features_clip[:, 1, 0] = np.asarray(plydata.elements[0]["f_clip_1"])
-        # features_clip[:, 2, 0] = np.asarray(plydata.elements[0]["f_clip_2"])
+        features_clip = np.zeros((xyz.shape[0], 3, 1))
+        features_clip[:, 0, 0] = np.asarray(plydata.elements[0]["f_clip_0"])
+        features_clip[:, 1, 0] = np.asarray(plydata.elements[0]["f_clip_1"])
+        features_clip[:, 2, 0] = np.asarray(plydata.elements[0]["f_clip_2"])
         
         extra_f_names = [p.name for p in plydata.elements[0].properties if p.name.startswith("f_rest_")]
         assert len(extra_f_names)==3*(self.max_sh_degree + 1) ** 2 - 3
@@ -1934,7 +1934,7 @@ class TemporalGaussianModel(nn.Module):
         self._features_dc = nn.Parameter(torch.tensor(features_dc, dtype=torch.float, device="cuda").transpose(1, 2).contiguous().requires_grad_(True))
         self._features_rest = nn.Parameter(torch.tensor(features_extra, dtype=torch.float, device="cuda").transpose(1, 2).contiguous().requires_grad_(True))
         self._features_dino = nn.Parameter(torch.tensor(features_dino, dtype=torch.float, device="cuda").transpose(1, 2).contiguous().requires_grad_(True))
-        # self._features_clip = nn.Parameter(torch.tensor(features_clip, dtype=torch.float, device="cuda").transpose(1, 2).contiguous().requires_grad_(True))
+        self._features_clip = nn.Parameter(torch.tensor(features_clip, dtype=torch.float, device="cuda").transpose(1, 2).contiguous().requires_grad_(True))
         self._opacity = nn.Parameter(torch.tensor(opacities, dtype=torch.float, device="cuda").requires_grad_(True))
         self._isstatic = nn.Parameter(torch.tensor(isstatic, dtype=torch.float, device="cuda").requires_grad_(False))
         self._scaling = nn.Parameter(torch.tensor(scales, dtype=torch.float, device="cuda").requires_grad_(True))
@@ -2011,7 +2011,7 @@ class TemporalGaussianModel(nn.Module):
         self._features_dc = optimizable_tensors["f_dc"]
         self._features_rest = optimizable_tensors["f_rest"]
         self._features_dino = optimizable_tensors["f_dino"]
-        # self._features_clip = optimizable_tensors["f_clip"]
+        self._features_clip = optimizable_tensors["f_clip"]
         self._opacity = optimizable_tensors["opacity"]
         self._scaling = optimizable_tensors["scaling"]
         self._rotation = optimizable_tensors["rotation"]
@@ -2057,7 +2057,7 @@ class TemporalGaussianModel(nn.Module):
         "f_dc": new_features_dc,
         "f_rest": new_features_rest,
         "f_dino": new_features_dino,
-        # "f_clip": new_features_clip,
+        "f_clip": new_features_clip,
         "opacity": new_opacities,
         #"isstatic": new_isstatic,
         "scaling" : new_scaling,
@@ -2068,7 +2068,7 @@ class TemporalGaussianModel(nn.Module):
         self._features_dc = optimizable_tensors["f_dc"]
         self._features_rest = optimizable_tensors["f_rest"]
         self._features_dino = optimizable_tensors["f_dino"]
-        # self._features_clip = optimizable_tensors["f_clip"]
+        self._features_clip = optimizable_tensors["f_clip"]
         self._opacity = optimizable_tensors["opacity"]
         self._isstatic = nn.Parameter(torch.cat([self._isstatic, new_isstatic], dim=0).requires_grad_(False))
         #assert False
@@ -2103,12 +2103,12 @@ class TemporalGaussianModel(nn.Module):
         new_features_dc = self._features_dc[selected_pts_mask].repeat(N,1,1)
         new_features_rest = self._features_rest[selected_pts_mask].repeat(N,1,1)
         new_features_dino = self._features_dino[selected_pts_mask].repeat(N,1,1)
-        # new_features_clip = self._features_clip[selected_pts_mask].repeat(N,1,1)
+        new_features_clip = self._features_clip[selected_pts_mask].repeat(N,1,1)
         new_opacity = self._opacity[selected_pts_mask].repeat(N,1)
         new_isstatic = self._isstatic[selected_pts_mask].repeat(N, 1)
 
         self.densification_postfix(new_xyz, new_features_dc, new_features_rest, new_opacity, new_isstatic, new_scaling, new_rotation,
-                                   new_features_dino)
+                                   new_features_dino, new_features_clip=new_features_clip)
 
         prune_filter = torch.cat((selected_pts_mask, torch.zeros(N * selected_pts_mask.sum(), device="cuda", dtype=bool)))
         self.prune_points(prune_filter)
@@ -2123,14 +2123,14 @@ class TemporalGaussianModel(nn.Module):
         new_features_dc = self._features_dc[selected_pts_mask]
         new_features_rest = self._features_rest[selected_pts_mask]
         new_features_dino = self._features_dino[selected_pts_mask]
-        # new_features_clip = self._features_clip[selected_pts_mask]
+        new_features_clip = self._features_clip[selected_pts_mask]
         new_opacities = self._opacity[selected_pts_mask]
         new_isstatic = self._isstatic[selected_pts_mask]
         new_scaling = self._scaling[selected_pts_mask]
         new_rotation = self._rotation[selected_pts_mask]
 
         self.densification_postfix(new_xyz, new_features_dc, new_features_rest, new_opacities, new_isstatic, new_scaling, new_rotation,
-                                   new_features_dino)
+                                   new_features_dino, new_features_clip=new_features_clip)
 
     def densify_and_prune(self, max_grad, min_opacity, extent, max_screen_size, dynamic_sep=False, min_motion=None):
         grads = self.xyz_gradient_accum / self.denom

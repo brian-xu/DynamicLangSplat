@@ -52,7 +52,7 @@ class TemporalCamera(nn.Module):
         self.image_height = self.original_image.shape[1]
 
         self.dino_features = dino_features.clamp(0.0, 1.0).to(self.data_device)
-        # self.clip_features = clip_features.clamp(0.0, 1.0).to(self.data_device)
+        self.clip_features = clip_features.clamp(0.0, 1.0).to(self.data_device)
 
         if gt_alpha_mask is not None:
             self.original_image *= gt_alpha_mask.to(self.data_device)

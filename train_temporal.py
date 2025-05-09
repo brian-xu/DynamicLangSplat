@@ -157,17 +157,16 @@ use_ResFields, ewa_prune):
         
         # TODO: experiment with losses here
         rendered_dino = render_pkg["rendered_dino"]
+        rendered_clip = render_pkg["rendered_clip"]
         gt_dino = viewpoint_cam.dino_features.cuda()[:3]
+        gt_clip = viewpoint_cam.clip_features.cuda()[:3]
         if iteration < opt.l1_l2_switch:
             dino_loss = l2_loss(rendered_dino, gt_dino) 
+            clip_loss = l2_loss(rendered_clip, gt_clip)
         else:
             dino_loss = l1_loss(rendered_dino, gt_dino) 
-        Ll1 += dino_loss
-        
-        # rendered_clip = render_pkg["rendered_clip"]
-        
-        # gt_clip = viewpoint_cam.clip_features.cuda()
-        # clip_loss = l2_loss(rendered_clip, gt_clip)
+            clip_loss = l1_loss(rendered_clip, gt_clip)
+        Ll1 += dino_loss + clip_loss
 
         # the case when no adpative policy is applied, use regualizer on loss
         #if not disable_adaptive:

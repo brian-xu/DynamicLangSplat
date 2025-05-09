@@ -31,7 +31,7 @@ class CameraInfo(NamedTuple):
     FovX: np.array
     image: np.array
     dino_features: np.array
-    # clip_features: np.array
+    clip_features: np.array
     image_path: str
     image_name: str
     width: int
@@ -214,16 +214,16 @@ class Load_hyper_data(Dataset):
         else:
             assert False, "run semantic feature preprocessing first! (see README)"
 
-        # clip_path = base_path / "clip_dim3" / res
-        # clip_name = image_name + ".npy"
-        # if os.path.exists(os.path.join(clip_path, clip_name)):
-        #     clip = np.load(os.path.join(clip_path, clip_name))
-        #     # normalize to [0, 1]
-        #     clip -= clip.min()
-        #     clip /= clip.max()
-        #     clip = torch.from_numpy(clip.copy()).permute(2, 0, 1)
-        # else:
-        #     assert False, "run semantic feature preprocessing first! (see README)"
+        clip_path = base_path / "clip_dim3" / res
+        clip_name = image_name + ".npy"
+        if os.path.exists(os.path.join(clip_path, clip_name)):
+            clip = np.load(os.path.join(clip_path, clip_name))
+            # normalize to [0, 1]
+            clip -= clip.min()
+            clip /= clip.max()
+            clip = torch.from_numpy(clip.copy()).permute(2, 0, 1)
+        else:
+            assert False, "run semantic feature preprocessing first! (see README)"
 
         depth_path = image_path + "_midasdepth"
         depth_name = image_name.split(".")[0] + "-dpt_beit_large_512.png"
@@ -265,7 +265,7 @@ class Load_hyper_data(Dataset):
             FovX=FovX,
             image=image,
             dino_features=dino,
-            # clip_features=clip,
+            clip_features=clip,
             image_path=image_path,
             image_name=image_name,
             width=w,
@@ -315,7 +315,7 @@ def format_hyper_data(data_class, split):
             FovX=FovX,
             image=None,
             dino_features=None,
-            # clip_features=None,
+            clip_features=None,
             image_path=image_path,
             image_name=image_name,
             width=int(data_class.w),
