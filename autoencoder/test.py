@@ -85,5 +85,5 @@ if __name__ == "__main__":
             if clip_composite is None:
                 clip_composite = image
             else:
-                clip_composite += image
+                clip_composite += image * (clip_composite == 0)
         np.save(os.path.join(output_dir, filename), clip_composite)

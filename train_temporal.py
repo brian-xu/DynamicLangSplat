@@ -166,7 +166,7 @@ use_ResFields, ewa_prune):
         else:
             dino_loss = l1_loss(rendered_dino, gt_dino) 
             clip_loss = l1_loss(rendered_clip, gt_clip)
-        Ll1 += dino_loss + clip_loss
+        Ll1 += dino_loss + clip_loss * 0.1
 
         # the case when no adpative policy is applied, use regualizer on loss
         #if not disable_adaptive:
