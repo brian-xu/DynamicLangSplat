@@ -18,3 +18,4 @@ data
 eval
 *.npz
 **/tmp
+compile/

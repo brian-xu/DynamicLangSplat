@@ -160,6 +160,8 @@ use_ResFields, ewa_prune):
         rendered_clip = render_pkg["rendered_clip"]
         gt_dino = viewpoint_cam.dino_features.cuda()[:3]
         gt_clip = viewpoint_cam.clip_features.cuda()[:3]
+        # print(f"gt_dino.shape: {gt_dino.shape}, gt_clip.shape: {gt_clip.shape}")
+        # print(f"rendered_dino.shape: {rendered_dino.shape}, rendered_clip.shape: {rendered_clip.shape}")
         if iteration < opt.l1_l2_switch:
             dino_loss = l2_loss(rendered_dino, gt_dino) 
             clip_loss = l2_loss(rendered_clip, gt_clip)

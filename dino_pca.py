@@ -23,6 +23,7 @@ def fit_dino(resolution, sequence_dir):
     crop_jsons = [file for file in input_embeddings if "json" in file]
     input_embeddings = [file for file in input_embeddings if "npy" in file]
 
+    print("FITTING PCA")
     for i, file in enumerate(input_embeddings):
         features = np.load(os.path.join(dino_dir, file))
         H, W, _ = features.shape

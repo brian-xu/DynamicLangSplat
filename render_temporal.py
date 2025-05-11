@@ -30,6 +30,9 @@ def render_set(model_path, name, iteration, views, gaussians, pipeline, backgrou
     gts_path = os.path.join(model_path, name, "ours_{}".format(iteration), "gt")
     depths_path = os.path.join(model_path, name, "ours_{}".format(iteration), "depth")
     canons_path = os.path.join(model_path, name, "ours_{}".format(iteration), "canon")
+    motion_path = os.path.join(model_path, name, "ours_{}".format(iteration), "motion")
+    flow_fwd_path = os.path.join(model_path, name, "ours_{}".format(iteration), "flow_fwd")
+    flow_bwd_path = os.path.join(model_path, name, "ours_{}".format(iteration), "flow_bwd")
     if gaussians.enable_static:
         seps_path = os.path.join(model_path, name, "ours_{}".format(iteration), "sep")
         dys_path = os.path.join(model_path, name, "ours_{}".format(iteration), "dys")
@@ -40,6 +43,9 @@ def render_set(model_path, name, iteration, views, gaussians, pipeline, backgrou
     makedirs(gts_path, exist_ok=True)
     makedirs(depths_path, exist_ok=True)
     makedirs(canons_path, exist_ok=True)
+    makedirs(motion_path, exist_ok=True)
+    makedirs(flow_fwd_path, exist_ok=True)
+    makedirs(flow_bwd_path, exist_ok=True)
     if gaussians.enable_static:
         makedirs(seps_path, exist_ok=True)
         makedirs(dys_path, exist_ok=True)
@@ -54,6 +60,7 @@ def render_set(model_path, name, iteration, views, gaussians, pipeline, backgrou
     end = torch.cuda.Event(enable_timing=True)
 
     times = []
+    print(f"Gaussians in this image: {gaussians._xyz.shape[0]}")
     for idx, view in enumerate(tqdm(views, desc="Rendering progress")):
         #print(disable_offopa, multiply_offopa)
         start.record()
@@ -61,6 +68,7 @@ def render_set(model_path, name, iteration, views, gaussians, pipeline, backgrou
                                     disable_deform=False, 
                                     return_sep=False,
                                     return_depth=False,
+                                    return_flow=True,
                                     visualize=False,)
         end.record()
         torch.cuda.synchronize()
@@ -78,6 +86,9 @@ def render_set(model_path, name, iteration, views, gaussians, pipeline, backgrou
         dy = render_pkg["rendered_dy"]
         canon = render_pkg["rendered_canon"] # must have
         stat = render_pkg["rendered_stat"]
+        motion = render_pkg["rendered_motion"]
+        flow_fwd = render_pkg["rendered_flow_fwd"]
+        flow_bwd = render_pkg["rendered_flow_bwd"]
 
         gt = view.original_image[0:3, :, :]
         psnrs.append(float(psnr(rendering, gt).mean().detach().double()))
@@ -88,6 +99,10 @@ def render_set(model_path, name, iteration, views, gaussians, pipeline, backgrou
         torchvision.utils.save_image(gt, os.path.join(gts_path, '{0:05d}'.format(idx) + ".png"))
         torchvision.utils.save_image(depth, os.path.join(depths_path, '{0:05d}'.format(idx) + ".png"))
         torchvision.utils.save_image(canon, os.path.join(canons_path, '{0:05d}'.format(idx) + ".png"))
+        torchvision.utils.save_image(motion, os.path.join(motion_path, '{0:05d}'.format(idx) + ".png"))
+        torchvision.utils.save_image(flow_fwd, os.path.join(flow_fwd_path, '{0:05d}'.format(idx) + ".png"))
+        torchvision.utils.save_image(flow_bwd, os.path.join(flow_bwd_path, '{0:05d}'.format(idx) + ".png"))
+        
         if gaussians.enable_static:
             torchvision.utils.save_image(sep, os.path.join(seps_path, '{0:05d}'.format(idx) + ".png"))
             torchvision.utils.save_image(stat, os.path.join(stats_path, '{0:05d}'.format(idx) + ".png"))
