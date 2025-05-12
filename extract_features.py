@@ -41,7 +41,6 @@ def extract_features(image_list, resolution, sequence_dir):
     progress_bar = tqdm(range(0, len(files)), desc="Extracting DINO features")
 
     for im_tensor, file in image_list:
-
         H, W, _ = im_tensor.shape
         im_tensor = im_tensor.unsqueeze(0).cuda()
         im_tensor = rearrange(im_tensor, "b h w c -> b c h w")
@@ -63,12 +62,6 @@ def extract_features(image_list, resolution, sequence_dir):
         dino_features = torch.reshape(
             dino_features, (1, DINO_FEATURES, H_14 // 14, W_14 // 14)
         )
-        # resize = nn.Upsample(scale_factor=14)
-        # dino_features = resize(dino_features)
-        # dino_features = dino_features[
-        #     :, :, padding_top : H + padding_top, padding_left : W + padding_left
-        # ]
-        # assert dino_features.shape[2:] == im_tensor.shape[2:]
         dino_features = rearrange(dino_features, "b c h w -> b h w c")
         dino_crop = {
             "padding_top": padding_top,
@@ -93,6 +86,9 @@ def extract_features(image_list, resolution, sequence_dir):
         progress_bar.update(1)
     progress_bar.close()
 
+    # Create a mapping from directory names to indices
+    dir_to_idx = {dir_name: idx for idx, dir_name in enumerate(sorted(dirs))}
+    
     clip_embeddings = np.zeros((len(most_visible), CLIP_FEATURES))
     progress_bar = tqdm(range(0, len(most_visible)), desc="Extracting CLIP features")
     for dir in most_visible:
@@ -111,7 +107,7 @@ def extract_features(image_list, resolution, sequence_dir):
         preprocessed = preprocess(masked_image).unsqueeze(0).cuda()
         with torch.no_grad():
             clip_embedding = clip.encode_image(preprocessed)
-        clip_embeddings[int(dir), :] = clip_embedding.squeeze().cpu().numpy()
+        clip_embeddings[dir_to_idx[dir], :] = clip_embedding.squeeze().cpu().numpy()
         progress_bar.update(1)
     progress_bar.close()
     np.save(os.path.join(clip_dir, "embeddings"), clip_embeddings)
